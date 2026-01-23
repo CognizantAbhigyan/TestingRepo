@@ -1,0 +1,76 @@
+
+You are a VS Code workspace agent with permission to:
+- Read all files in the workspace.
+- Create or modify files in the workspace (specifically under an "Output" folder).
+- Generate structured outputs (CSV) exactly as instructed below.
+- Proceed without asking for step-by-step confirmations.
+
+=== GOAL ===
+Replicate the following workflow across the current workspace WITHOUT writing or running code in the workspace. Work directly with files and content you can read, and create the final CSV files as described.
+
+=== INPUTS ===
+- ROOT_FOLDER: "Object Repository"
+- OUTPUT_DIR: "Output"
+
+=== WHAT TO PRODUCE ===
+Create TWO CSV files under OUTPUT_DIR:
+1) DETAILS CSV at: {OUTPUT_DIR}/{basename(ROOT_FOLDER)}.csv
+   Columns (exact order): File, Object_Name, Identifier, Value
+2) COUNTS CSV at: {OUTPUT_DIR}/{basename(ROOT_FOLDER)}_counter.csv
+   Columns (exact order): Folder, RS_Files_Count
+
+=== DETAILED SPECIFICATION ===
+A. Discovery
+1. Recursively enumerate ALL files under ROOT_FOLDER that end with ".rs" (case-insensitive).
+2. If none found, report: "No .rs files found in the specified folder." and stop.
+
+B. Path handling
+1. Normalize ALL paths to use forward slashes (/).
+2. For the DETAILS CSV 'File' column, use the path RELATIVE to ROOT_FOLDER and REMOVE the ".rs" extension.
+3. For folder listings in the COUNTS CSV, include every directory under ROOT_FOLDER (including ROOT_FOLDER itself and every subdirectory), normalized with forward slashes, as absolute paths or workspace-rooted paths consistently. (Consistency is required across all rows.)
+4. The 'Object_Name' is the leaf file name with the ".rs" extension removed.
+
+C. COUNTS CSV (non-recursive counts)
+1. For each directory under ROOT_FOLDER (including ROOT_FOLDER), count how many ".rs" files are directly inside that directory ONLY (non-recursive).
+2. Write rows in any deterministic order with columns:
+   - Folder
+   - RS_Files_Count
+
+D. DETAILS CSV (XML extraction)
+1. For each ".rs" file:
+   - Treat it as XML.
+   - Find the FIRST occurrence of the element: <webElementProperties>
+   - Within that element, extract:
+     - <name> → Identifier (if absent, use "N/A")
+     - <value> → Value (if absent, use "N/A")
+2. If the file cannot be parsed as XML, skip it and include a note in the final report with the file path and "XML parse error".
+3. Write one row per .rs file with columns:
+   - File (relative path from ROOT_FOLDER, .rs extension removed)
+   - Object_Name (file name without extension)
+   - Identifier (as above)
+   - Value (as above)
+
+E. File creation & encoding
+1. Ensure OUTPUT_DIR exists at the workspace root; create it if needed.
+2. Write both CSV files with:
+   - Header row exactly as specified.
+   - Encoding: UTF-8 with BOM (utf-8-sig).
+3. Use commas as delimiters and standard CSV quoting where necessary.
+
+F. Reporting
+At the end, reply with:
+1) A summary:
+   - Number of .rs files found
+   - Number of directories counted
+   - Number of DETAIL rows written
+   - Paths to the two CSV files
+2) Any warnings or errors (e.g., XML parse errors), listing file paths.
+
+=== CONSTRAINTS & BEHAVIOR ===
+- Do NOT generate or run any helper code files in the workspace.
+- Work deterministically; if data is ambiguous, choose a consistent approach and document it in the report.
+- Do not ask for confirmations between steps; proceed and report.
+- If permission is required to create files, request it once, then proceed.
+
+=== EXECUTE NOW ===
+Use ROOT_FOLDER = "Object Repository" and OUTPUT_DIR = "Output". Produce the two CSV files and the final report as specified.
